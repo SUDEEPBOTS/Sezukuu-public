@@ -66,6 +66,42 @@ export default function EditBot() {
     }
   }
 
+  // ---------- ADD WEBHOOK BUTTONS ----------
+  async function connectWebhook() {
+    const token = localStorage.getItem("token");
+
+    const r = await axios.post(
+      "/api/connect-webhook",
+      { id: data._id },
+      { headers: { Authorization: "Bearer " + token } }
+    );
+
+    if (r.data.ok) {
+      alert("Webhook connected!");
+      Router.reload();
+    } else {
+      alert(r.data.error || "Failed");
+    }
+  }
+
+  async function disconnectWebhook() {
+    const token = localStorage.getItem("token");
+    if (!confirm("Disconnect webhook?")) return;
+
+    const r = await axios.post(
+      "/api/disconnect-webhook",
+      { id: data._id },
+      { headers: { Authorization: "Bearer " + token } }
+    );
+
+    if (r.data.ok) {
+      alert("Webhook disconnected");
+      Router.reload();
+    } else {
+      alert(r.data.error || "Failed");
+    }
+  }
+
   if (loading)
     return <div className="text-white p-6">Loading bot...</div>;
 
@@ -78,6 +114,35 @@ export default function EditBot() {
 
       <div className="max-w-xl bg-white/10 p-6 rounded-2xl border border-white/20 backdrop-blur-xl">
 
+        {/* WEBHOOK STATUS + BUTTONS */}
+        <div className="flex items-center justify-between mb-6 p-3 bg-black/20 rounded-xl">
+          <span className="text-lg font-semibold">
+            Status:{" "}
+            {data.webhookConnected ? (
+              <span className="text-green-400">Connected</span>
+            ) : (
+              <span className="text-red-400">Disconnected</span>
+            )}
+          </span>
+
+          {data.webhookConnected ? (
+            <button
+              onClick={disconnectWebhook}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl active:scale-95"
+            >
+              Disconnect
+            </button>
+          ) : (
+            <button
+              onClick={connectWebhook}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-xl active:scale-95"
+            >
+              Connect
+            </button>
+          )}
+        </div>
+
+        {/* BOT UPDATE FIELDS */}
         <input
           className="w-full p-3 mb-4 bg-white/20 rounded"
           value={data.botName}
@@ -149,6 +214,7 @@ export default function EditBot() {
           onChange={(e) => update("supportGroup", e.target.value)}
         />
 
+        {/* SAVE BUTTON */}
         <button
           onClick={save}
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl mb-4 transition"
@@ -156,6 +222,7 @@ export default function EditBot() {
           Save Changes
         </button>
 
+        {/* DELETE BUTTON */}
         <button
           onClick={deleteBot}
           className="w-full py-3 bg-red-600 hover:bg-red-700 rounded-xl transition"
