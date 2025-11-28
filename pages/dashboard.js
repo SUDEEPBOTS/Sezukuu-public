@@ -1,21 +1,18 @@
-const [stats, setStats] = useState(null);
+"use client";
 
-useEffect(() => {
-  async function load() {
-    const token = localStorage.getItem("token");
-    const bots = await axios.get("/api/my-bots", {
-      headers: { Authorization: "Bearer " + token },
-    });
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-    const botIds = bots.data.bots.map((b) => b._id);
+export default function Dashboard() {
+  const [cfg, setCfg] = useState(null);
+  const [user, setUser] = useState(null);
+  const [bots, setBots] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    const r = await axios.post("/api/get-user-stats", { botIds });
-    setStats(r.data.stats);
-  }
-  load();
-}, []);
-const [cfg, setCfg] = useState(null);
-
+  // ===============================
+  // LOAD PUBLIC CONFIG
+  // ===============================
   useEffect(() => {
     async function loadConfig() {
       const r = await fetch("/api/get-public-config");
@@ -28,6 +25,7 @@ const [cfg, setCfg] = useState(null);
   if (!cfg)
     return <div className="p-6 text-white">Loading...</div>;
 
+  // Public system OFF
   if (!cfg.publicEnabled) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -38,24 +36,19 @@ const [cfg, setCfg] = useState(null);
       </div>
     );
   }
-import { useEffect, useState } from "react";
-import axios from "axios";
 
-export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [bots, setBots] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Load user + user bots
+  // ===============================
+  // LOAD USER + BOTS + USER STATS
+  // ===============================
   useEffect(() => {
-    async function load() {
+    async function loadDashboard() {
       const token = localStorage.getItem("token");
       if (!token) {
         window.location = "/login";
         return;
       }
 
-      // Load user
+      // Load user info
       const me = await axios.get("/api/me", {
         headers: { Authorization: "Bearer " + token }
       });
@@ -68,26 +61,38 @@ export default function Dashboard() {
 
       setUser(me.data.user);
 
-      // Load user's bots
-      const botsRes = await axios.get(
-        `/api/my-bots`,
-        { headers: { Authorization: "Bearer " + token } }
-      );
+      // Load bots
+      const botsRes = await axios.get("/api/my-bots", {
+        headers: { Authorization: "Bearer " + token }
+      });
 
-      setBots(botsRes.data.data || []);
+      const botList = botsRes.data.bots || [];
+      setBots(botList);
+
+      // Load stats
+      const botIds = botList.map(b => b._id);
+      const statsRes = await axios.post("/api/get-user-stats", { botIds });
+      setStats(statsRes.data.stats);
+
       setLoading(false);
     }
-    load();
+    loadDashboard();
   }, []);
 
+  // ===============================
+  // LOGOUT
+  // ===============================
   function logout() {
     localStorage.removeItem("token");
     window.location = "/login";
   }
 
-  if (loading)
-    return <div className="p-6 text-xl">Loading...</div>;
+  if (loading || !user || !stats)
+    return <div className="p-6 text-xl">Loading dashboard...</div>;
 
+  // ===============================
+  // MAIN UI
+  // ===============================
   return (
     <div className="min-h-screen bg-gray-100 p-6">
 
@@ -105,6 +110,31 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* USER STATS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-white">
+
+        <div className="p-4 rounded-xl bg-blue-600">
+          <h2 className="text-xl font-bold">{stats.totalBots}</h2>
+          <p>Total Bots</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-green-600">
+          <h2 className="text-xl font-bold">{stats.activeBots}</h2>
+          <p>Active Bots</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-orange-600">
+          <h2 className="text-xl font-bold">{stats.inactiveBots}</h2>
+          <p>Inactive Bots</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-purple-600">
+          <h2 className="text-xl font-bold">{stats.totalGroups}</h2>
+          <p>Groups Added</p>
+        </div>
+
+      </div>
+
       {/* ADD BOT BUTTON */}
       <div className="mb-6">
         <button
@@ -115,13 +145,11 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* BOTS LIST */}
+      {/* BOT LIST */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {bots.map((bot) => (
-          <div
-            key={bot._id}
-            className="p-4 bg-white rounded shadow"
-          >
+          <div key={bot._id} className="p-4 bg-white rounded shadow">
+
             <h2 className="text-xl font-semibold mb-2">
               {bot.botName} <span className="text-gray-500">@{bot.botUsername}</span>
             </h2>
@@ -143,8 +171,8 @@ export default function Dashboard() {
               )}
             </p>
 
-            {/* BOT ACTION BUTTONS */}
             <div className="flex gap-2">
+
               <button
                 onClick={() => (window.location = `/settings?id=${bot._id}`)}
                 className="px-3 py-1 bg-blue-600 text-white rounded"
@@ -166,11 +194,13 @@ export default function Dashboard() {
               >
                 Delete
               </button>
+
             </div>
 
           </div>
         ))}
       </div>
+
     </div>
   );
-              }
+}
