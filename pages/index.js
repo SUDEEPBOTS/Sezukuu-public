@@ -1,36 +1,25 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Router from "next/router";
 
-export default function IndexPage() {
+export default function Login() {
   const [cfg, setCfg] = useState(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // LOAD PUBLIC CONFIG
+  // PUBLIC CONFIG LOAD
   useEffect(() => {
-    async function loadConfig() {
-      try {
-        const r = await fetch("/api/get-public-config");
-        const d = await r.json();
-        setCfg(d.config);
-      } catch {
-        setCfg({ publicEnabled: false, offMessage: "Server Error" });
-      }
+    async function load() {
+      const r = await fetch("/api/get-public-config");
+      const d = await r.json();
+      setCfg(d.config);
     }
-    loadConfig();
+    load();
   }, []);
 
-  // WAIT UNTIL CONFIG LOADS
-  if (!cfg) {
-    return (
-      <div className="p-6 text-white text-xl">
-        Loading...
-      </div>
-    );
-  }
+  if (!cfg) return <div className="p-6 text-white text-xl">Loading...</div>;
 
-  // PUBLIC SYSTEM CLOSED
   if (!cfg.publicEnabled) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-900 text-white text-center p-6">
@@ -42,18 +31,6 @@ export default function IndexPage() {
     );
   }
 
-  // PUBLIC OPEN → SHOW LOGIN
-  return <LoginForm />;
-}
-
-// ===============================
-// LOGIN FORM COMPONENT
-// ===============================
-function LoginForm() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
   async function handleLogin() {
     if (!username || !password) {
       alert("Username & password required");
@@ -63,10 +40,7 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await axios.post("/api/login", {
-        username,
-        password,
-      });
+      const res = await axios.post("/api/login", { username, password });
 
       if (res.data.ok) {
         localStorage.setItem("token", res.data.token);
@@ -98,7 +72,7 @@ function LoginForm() {
 
         <input
           type="password"
-          placeholder="Password (heartstealer)"
+          placeholder="Password"
           className="w-full p-3 mb-6 rounded bg-white/20 text-white placeholder-gray-300 focus:outline-none"
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -110,6 +84,7 @@ function LoginForm() {
         >
           {loading ? "Checking..." : "Login"}
         </button>
+
       </div>
     </div>
   );
