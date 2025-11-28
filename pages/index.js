@@ -8,18 +8,45 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // PUBLIC CONFIG LOAD
+  // SAFE PUBLIC CONFIG LOAD (NO CRASH)
   useEffect(() => {
     async function load() {
-      const r = await fetch("/api/get-public-config");
-      const d = await r.json();
-      setCfg(d.config);
+      try {
+        const r = await fetch("/api/get-public-config");
+        const d = await r.json();
+
+        // SAFE CHECK
+        if (!d || !d.ok || !d.config) {
+          setCfg({
+            publicEnabled: false,
+            offMessage: "Server offline or config error.",
+          });
+          return;
+        }
+
+        setCfg(d.config);
+      } catch {
+        setCfg({
+          publicEnabled: false,
+          offMessage: "Server error, please try again later.",
+        });
+      }
     }
     load();
   }, []);
 
-  if (!cfg) return <div className="p-6 text-white text-xl">Loading...</div>;
 
+  // Loading Screen
+  if (!cfg) {
+    return (
+      <div className="p-6 text-white text-xl bg-gray-900 h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+
+  // If Public Panel is Disabled
   if (!cfg.publicEnabled) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-900 text-white text-center p-6">
@@ -31,6 +58,8 @@ export default function Login() {
     );
   }
 
+
+  // Login Submit
   async function handleLogin() {
     if (!username || !password) {
       alert("Username & password required");
@@ -54,6 +83,7 @@ export default function Login() {
 
     setLoading(false);
   }
+
 
   return (
     <div className="h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-800 to-gray-900">
