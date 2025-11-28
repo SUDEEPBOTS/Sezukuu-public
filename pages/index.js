@@ -1,82 +1,36 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Router from "next/router";
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    async function load() {
-      const res = await axios.get("/api/admin/stats");
-      setStats(res.data.stats);
-    }
-    load();
-  }, []);
-
-  if (!stats) return <div className="p-6 text-xl">Loading stats...</div>;
-
-  return (
-    <div className="p-6 space-y-6">
-
-      {/* HEADER */}
-      <h1 className="text-3xl font-bold">Sezukuu 2.5 — Live Stats</h1>
-
-      {/* STATS CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
-
-        <div className="p-4 rounded-xl bg-blue-600">
-          <h2 className="text-xl font-bold">{stats.totalBots}</h2>
-          <p>Total Bots</p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-green-600">
-          <h2 className="text-xl font-bold">{stats.activeBots}</h2>
-          <p>Active Bots</p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-orange-600">
-          <h2 className="text-xl font-bold">{stats.inactiveBots}</h2>
-          <p>Inactive Bots</p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-purple-600">
-          <h2 className="text-xl font-bold">{stats.totalGroups}</h2>
-          <p>Groups Added</p>
-        </div>
-
-      </div>
-
-      {/* RECENT BOTS */}
-      <div className="bg-white/10 p-4 rounded-xl border border-white/20">
-        <h3 className="text-xl font-bold mb-3">Latest Bots</h3>
-
-        {stats.topBots.map((b) => (
-          <div key={b._id} className="p-2 border-b border-white/10">
-            <strong>{b.botName}</strong> — @{b.botUsername}
-          </div>
-        ))}
-      </div>
-
-    </div>
-  );
-}
-import { useEffect, useState } from "react";
-
-export default function Login() {
+export default function IndexPage() {
   const [cfg, setCfg] = useState(null);
 
+  // LOAD PUBLIC CONFIG
   useEffect(() => {
-    async function load() {
-      const r = await fetch("/api/get-public-config");
-      const d = await r.json();
-      setCfg(d.config);
+    async function loadConfig() {
+      try {
+        const r = await fetch("/api/get-public-config");
+        const d = await r.json();
+        setCfg(d.config);
+      } catch {
+        setCfg({ publicEnabled: false, offMessage: "Server Error" });
+      }
     }
-    load();
+    loadConfig();
   }, []);
 
-  if (!cfg)
-    return <div className="p-6 text-white text-xl">Loading...</div>;
+  // WAIT UNTIL CONFIG LOADS
+  if (!cfg) {
+    return (
+      <div className="p-6 text-white text-xl">
+        Loading...
+      </div>
+    );
+  }
 
-  // PUBLIC DISABLED
+  // PUBLIC SYSTEM CLOSED
   if (!cfg.publicEnabled) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-900 text-white text-center p-6">
@@ -87,11 +41,15 @@ export default function Login() {
       </div>
     );
   }
-import { useState } from "react";
-import axios from "axios";
-import Router from "next/router";
 
-export default function Login() {
+  // PUBLIC OPEN → SHOW LOGIN
+  return <LoginForm />;
+}
+
+// ===============================
+// LOGIN FORM COMPONENT
+// ===============================
+function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -152,8 +110,7 @@ export default function Login() {
         >
           {loading ? "Checking..." : "Login"}
         </button>
-
       </div>
     </div>
   );
-            }
+}
