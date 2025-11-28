@@ -1,3 +1,27 @@
+const [cfg, setCfg] = useState(null);
+
+  useEffect(() => {
+    async function loadConfig() {
+      const r = await fetch("/api/get-public-config");
+      const d = await r.json();
+      setCfg(d.config);
+    }
+    loadConfig();
+  }, []);
+
+  if (!cfg)
+    return <div className="p-6 text-white">Loading...</div>;
+
+  if (!cfg.publicEnabled) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="bg-white/10 p-8 rounded-2xl backdrop-blur-xl border border-white/20 text-center max-w-md">
+          <h1 className="text-3xl font-bold mb-4">🚫 Panel Offline</h1>
+          <p className="text-gray-200">{cfg.offMessage}</p>
+        </div>
+      </div>
+    );
+  }
 import { useEffect, useState } from "react";
 import axios from "axios";
 
