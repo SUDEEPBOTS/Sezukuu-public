@@ -1,33 +1,24 @@
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/db";
+import { verifyToken } from "@/lib/auth";
 import PublicBot from "@/models/PublicBot";
 
 export default async function handler(req, res) {
   await connectDB();
 
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.json({ ok: false, msg: "Unauthorized" });
+  const user = verifyToken(req);
+  if (!user) return res.json({ ok: false, error: "Unauthorized" });
 
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
-  } catch {
-    return res.json({ ok: false, msg: "Invalid token" });
-  }
+  const bot = await PublicBot.findById(req.body._id);
 
-  const { botId, botName, gender, personality, ownerName, ownerUsername } =
-    req.body;
+  if (!bot) return res.json({ ok: false, error: "Bot not found" });
 
-  await PublicBot.findOneAndUpdate(
-    { _id: botId, userId: decoded.id },
-    {
-      botName,
-      gender,
-      personality,
-      ownerName,
-      ownerUsername
-    }
-  );
+  // prevent editing someone else’s bot
+  if (bot.userId.toString() !== user.id)
+    return res.json({ ok: false, error: "Not allowed" });
 
-  return res.json({ ok: true, msg: "Bot updated ✔" });
+  // apply updates
+  Object.assign(bot, req.body);
+  await bot.save();
+
+  res.json({ ok: true });
 }
