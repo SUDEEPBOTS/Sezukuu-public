@@ -31,6 +31,62 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // -----------------------------------------
+  // INLINE BUTTON HANDLER (Step 11.2)
+  // -----------------------------------------
+  if (update.callback_query) {
+    const q = update.callback_query;
+    const data = q.data;
+    const chatId = q.message.chat.id;
+    const userId = q.from.id.toString();
+
+    const botId = req.query.botId;
+    const bot = await PublicBot.findById(botId).lean();
+    const BOT_TOKEN = bot.botToken;
+
+    // CHAT BUTTON
+    if (data === "chat") {
+      await sendMessage(BOT_TOKEN, chatId, "Aww okay 😊 bolo na…");
+    }
+
+    // HELP
+    if (data === "help") {
+      await sendMessage(
+        BOT_TOKEN,
+        chatId,
+        "Main ek AI based bot hu 💗\n\n• Mujhse normal baat karo\n• Group me sirf tag/reply par reply karti hu\n• /start use karo inline buttons ke liye"
+      );
+    }
+
+    // OWNER INFO
+    if (data === "owner") {
+      await sendMessage(
+        BOT_TOKEN,
+        chatId,
+        `👤 *Owner:* ${bot.ownerName}\n🔗 @${bot.ownerUsername}`,
+        { parse_mode: "Markdown" }
+      );
+    }
+
+    // SUPPORT
+    if (data === "support") {
+      await sendMessage(
+        BOT_TOKEN,
+        chatId,
+        `Join Support Group:\n${bot.supportGroup || "No link added"}`
+      );
+    }
+
+    // RESET MEMORY
+    if (data === "reset") {
+      await Memory.deleteMany({ botId, userId, chatId });
+      await sendMessage(BOT_TOKEN, chatId, "🧠 Memory reset successfully!");
+    }
+
+    return res.status(200).json({ ok: true });
+  }
+
+  // Extract message
   const msg = update.message || update.edited_message;
   const chatId = msg?.chat?.id;
   const userId = msg?.from?.id?.toString();
@@ -51,20 +107,37 @@ export default async function handler(req, res) {
   const lower = userText.toLowerCase();
 
   // ----------------------------------------------------------
-  // 1) START COMMAND
+  // 1) START COMMAND (WITH INLINE BUTTONS)
   // ----------------------------------------------------------
   if (lower.startsWith("/start")) {
     const text = bot.startMessage || `Hey, I'm *${bot.botName}* ✨`;
 
-    await sendMessage(BOT_TOKEN, chatId, text, {
-      parse_mode: "Markdown",
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "❤️ Chat with Me", callback_data: "chat" }],
+            [
+              { text: "ℹ️ Help", callback_data: "help" },
+              { text: "👤 Owner", callback_data: "owner" },
+            ],
+            [{ text: "🧠 Reset Memory", callback_data: "reset" }],
+            [{ text: "🔗 Support", callback_data: "support" }],
+          ],
+        },
+      }),
     });
 
     return res.status(200).json({ ok: true });
   }
 
   // ----------------------------------------------------------
-  // 2) BOT ADDED TO GROUP → WELCOME
+  // 2) BOT ADDED TO GROUP — WELCOME
   // ----------------------------------------------------------
   if (update.my_chat_member?.new_chat_member?.status === "member") {
     const welcome = bot.welcomeMessage || "Thanks for adding me 💗";
@@ -83,7 +156,6 @@ export default async function handler(req, res) {
       await sendMessage(BOT_TOKEN, chatId, welcome);
     }
 
-    // Save group
     await Group.findOneAndUpdate(
       { chatId, botId },
       {
@@ -359,4 +431,4 @@ Bot:
   await sendMessage(BOT_TOKEN, chatId, reply);
 
   return res.status(200).json({ ok: true });
-}
+    }
