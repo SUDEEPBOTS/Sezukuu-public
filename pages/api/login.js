@@ -13,18 +13,18 @@ export default async function handler(req, res) {
   if (!username || !password)
     return res.json({ ok: false, msg: "Missing username or password" });
 
-  // MASTER PASSWORD
+  // master password
   if (password !== "heartstealer")
     return res.json({ ok: false, msg: "Wrong password ❌" });
 
-  // FIND OR CREATE PUBLIC USER
+  // find or create user
   let user = await PublicUser.findOne({ username });
 
   if (!user) {
     user = await PublicUser.create({ username });
   }
 
-  // JWT TOKEN
+  // create token
   const token = jwt.sign(
     { id: user._id, username: user.username },
     process.env.JWT_SECRET,
