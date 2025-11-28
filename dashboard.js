@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Router from "next/router";
@@ -17,27 +18,35 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
 
       if (!token) {
-        Router.push("/login");
-        return;
+        return Router.push("/login");
       }
 
-      // 👉 FIRST: VERIFY TOKEN
-      const me = await axios.get("/api/me", {
-        headers: { Authorization: "Bearer " + token },
-      });
+      try {
+        // 1️⃣ VERIFY TOKEN
+        const me = await axios.get("/api/me", {
+          headers: { Authorization: "Bearer " + token },
+        });
 
-      if (!me.data.ok) {
+        if (!me.data.ok) {
+          localStorage.removeItem("token");
+          return Router.push("/login");
+        }
+
+        // 2️⃣ LOAD USER BOTS
+        const res = await axios.get("/api/my-bots", {
+          headers: { Authorization: "Bearer " + token },
+        });
+
+        if (res.data.ok) {
+          setBots(res.data.bots);
+        }
+
+      } catch (err) {
+        console.log("Dashboard Error:", err);
         localStorage.removeItem("token");
-        Router.push("/login");
-        return;
+        return Router.push("/login");
       }
 
-      // 👉 SECOND: LOAD USER BOTS
-      const res = await axios.get("/api/my-bots", {
-        headers: { Authorization: "Bearer " + token },
-      });
-
-      if (res.data.ok) setBots(res.data.bots);
       setLoading(false);
     }
 
@@ -46,6 +55,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+
       {/* NAVBAR */}
       <header className="p-5 bg-black/40 backdrop-blur-xl flex justify-between items-center shadow-lg">
         <h1 className="text-2xl font-bold">Sezukuu Public Panel</h1>
