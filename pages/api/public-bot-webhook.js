@@ -66,7 +66,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true });
   }
-
   // ----------------------------------------------------------
   // 2) BOT GETS ADDED TO GROUP — WELCOME MESSAGE
   // ----------------------------------------------------------
@@ -126,6 +125,25 @@ export default async function handler(req, res) {
     }
   }
 
+  async function isAdmin(BOT_TOKEN, chatId, userId) {
+  try {
+    const r = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${chatId}&user_id=${userId}`
+    );
+    const data = await r.json();
+
+    if (!data.ok) return false;
+
+    const status = data.result.status;
+
+    return (
+      status === "administrator" ||
+      status === "creator"
+    );
+  } catch {
+    return false;
+  }
+  }
   // ----------------------------------------------------------
   // 4) STRICT GROUP REPLY MODE
   // ----------------------------------------------------------
