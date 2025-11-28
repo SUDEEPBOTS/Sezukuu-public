@@ -9,31 +9,43 @@ export default function Dashboard() {
 
   function logout() {
     localStorage.removeItem("token");
-    Router.push("/");
+    Router.push("/login");
   }
 
   useEffect(() => {
     async function load() {
       const token = localStorage.getItem("token");
-      if (!token) return Router.push("/");
 
-      try {
-        const res = await axios.get("/api/my-bots", {
-          headers: { Authorization: "Bearer " + token },
-        });
-
-        if (res.data.ok) setBots(res.data.bots);
-      } catch (e) {
-        console.log(e);
+      if (!token) {
+        Router.push("/login");
+        return;
       }
+
+      // 👉 FIRST: VERIFY TOKEN
+      const me = await axios.get("/api/me", {
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      if (!me.data.ok) {
+        localStorage.removeItem("token");
+        Router.push("/login");
+        return;
+      }
+
+      // 👉 SECOND: LOAD USER BOTS
+      const res = await axios.get("/api/my-bots", {
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      if (res.data.ok) setBots(res.data.bots);
       setLoading(false);
     }
+
     load();
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-
       {/* NAVBAR */}
       <header className="p-5 bg-black/40 backdrop-blur-xl flex justify-between items-center shadow-lg">
         <h1 className="text-2xl font-bold">Sezukuu Public Panel</h1>
@@ -72,4 +84,4 @@ export default function Dashboard() {
       </main>
     </div>
   );
-          }
+}
