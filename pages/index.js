@@ -1,3 +1,31 @@
+import { useEffect, useState } from "react";
+
+export default function Login() {
+  const [cfg, setCfg] = useState(null);
+
+  useEffect(() => {
+    async function load() {
+      const r = await fetch("/api/get-public-config");
+      const d = await r.json();
+      setCfg(d.config);
+    }
+    load();
+  }, []);
+
+  if (!cfg)
+    return <div className="p-6 text-white text-xl">Loading...</div>;
+
+  // PUBLIC DISABLED
+  if (!cfg.publicEnabled) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-900 text-white text-center p-6">
+        <div className="bg-white/10 backdrop-blur-xl p-8 rounded-2xl shadow-xl max-w-md border border-white/20">
+          <h1 className="text-3xl font-bold mb-4">🚫 Offline</h1>
+          <p className="text-gray-300">{cfg.offMessage}</p>
+        </div>
+      </div>
+    );
+  }
 import { useState } from "react";
 import axios from "axios";
 import Router from "next/router";
