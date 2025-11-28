@@ -5,31 +5,41 @@ import PublicUser from "@/models/PublicUser";
 export default async function handler(req, res) {
   await connectDB();
 
-  if (req.method !== "POST")
-    return res.status(405).json({ ok: false, msg: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.json({ ok: false, error: "Method not allowed" });
+  }
 
   const { username, password } = req.body;
 
-  if (!username || !password)
-    return res.json({ ok: false, msg: "Missing username or password" });
+  if (!username || !password) {
+    return res.json({ ok: false, error: "Missing fields" });
+  }
 
-  // master password
-  if (password !== "heartstealer")
-    return res.json({ ok: false, msg: "Wrong password ❌" });
+  // HARD-CODED TEMP MASTER PASSWORD
+  const MASTER_PASSWORD = process.env.MASTER_PASSWORD || "yuki742123";
 
-  // find or create user
+  if (password !== MASTER_PASSWORD) {
+    return res.json({ ok: false, error: "Invalid password" });
+  }
+
   let user = await PublicUser.findOne({ username });
 
   if (!user) {
     user = await PublicUser.create({ username });
   }
 
-  // create token
   const token = jwt.sign(
-    { id: user._id, username: user.username },
+    { id: user._id },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  return res.json({ ok: true, token });
+  res.json({
+    ok: true,
+    token,
+    user: {
+      id: user._id,
+      username: user.username,
+    }
+  });
 }
