@@ -1,22 +1,22 @@
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/db";
+import { verifyToken } from "@/lib/auth";
 import PublicBot from "@/models/PublicBot";
+import PublicUser from "@/models/PublicUser";
 
 export default async function handler(req, res) {
   await connectDB();
 
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.json({ ok: false });
+  const user = verifyToken(req);
+  if (!user) return res.json({ ok: false, error: "Unauthorized" });
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const dbUser = await PublicUser.findOne({ _id: user.id });
 
-    const bots = await PublicBot.find({ userId: decoded.id }).sort({
-      createdAt: -1
-    });
+  if (!dbUser) return res.json({ ok: false, error: "User not found" });
 
-    return res.json({ ok: true, data: bots });
-  } catch {
-    return res.json({ ok: false });
-  }
+  const bots = await PublicBot.find({ userId: dbUser._id }).lean();
+
+  res.json({
+    ok: true,
+    bots,
+  });
 }
