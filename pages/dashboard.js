@@ -1,3 +1,19 @@
+const [stats, setStats] = useState(null);
+
+useEffect(() => {
+  async function load() {
+    const token = localStorage.getItem("token");
+    const bots = await axios.get("/api/my-bots", {
+      headers: { Authorization: "Bearer " + token },
+    });
+
+    const botIds = bots.data.bots.map((b) => b._id);
+
+    const r = await axios.post("/api/get-user-stats", { botIds });
+    setStats(r.data.stats);
+  }
+  load();
+}, []);
 const [cfg, setCfg] = useState(null);
 
   useEffect(() => {
