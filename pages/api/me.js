@@ -5,17 +5,31 @@ import PublicUser from "@/models/PublicUser";
 export default async function handler(req, res) {
   await connectDB();
 
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.json({ ok: false });
+  if (req.method !== "POST")
+    return res.status(405).json({ ok: false, msg: "Method not allowed" });
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await PublicUser.findById(decoded.id).lean();
+  const { username, password } = req.body;
 
-    if (!user) return res.json({ ok: false });
+  if (!username || !password)
+    return res.json({ ok: false, msg: "Missing username or password" });
 
-    return res.json({ ok: true, user });
-  } catch {
-    return res.json({ ok: false });
+  // MASTER PASSWORD
+  if (password !== "heartstealer")
+    return res.json({ ok: false, msg: "Wrong password ❌" });
+
+  // FIND OR CREATE PUBLIC USER
+  let user = await PublicUser.findOne({ username });
+
+  if (!user) {
+    user = await PublicUser.create({ username });
   }
+
+  // JWT TOKEN
+  const token = jwt.sign(
+    { id: user._id, username: user.username },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  return res.json({ ok: true, token });
 }
